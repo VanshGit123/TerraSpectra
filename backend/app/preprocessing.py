@@ -31,19 +31,29 @@ def standardize_bands(cube: np.ndarray) -> np.ndarray:
     if not np.all(np.isfinite(cube)):
         raise ValueError("Cube contains NaN or infinite values.")
 
-    mean = np.mean(cube, axis=(0, 1), keepdims=True)
-    std = np.std(cube, axis=(0, 1), keepdims=True)
+    cube_float = cube.astype(np.float64)
+    mean = np.mean(cube_float, axis=(0, 1), keepdims=True)
+    std = np.std(cube_float, axis=(0, 1), keepdims=True)
 
     std = np.where(std < 1e-8, 1.0, std)
 
-    return ((cube - mean) / std).astype(np.float32)
+    standardized = (cube_float - mean) / std
+    standardized -= np.mean(
+        standardized,
+        axis=(0, 1),
+        keepdims=True,
+    )
 
+    return standardized.astype(np.float32)
 
 def get_spectral_summary(cube: np.ndarray) -> dict:
-    """Generate summary information for spectral data."""
+    """Generate summary information for finite spectral data."""
 
     if cube.ndim != 3:
         raise ValueError("Expected cube with shape [H, W, B].")
+
+    if not np.all(np.isfinite(cube)):
+        raise ValueError("Cube contains NaN or infinite values.")
 
     return {
         "shape": list(cube.shape),
